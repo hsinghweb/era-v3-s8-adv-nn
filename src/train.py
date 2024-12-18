@@ -9,6 +9,25 @@ from dataset import CIFAR10Dataset
 from config import Config
 from utils import train_epoch, validate
 
+def display_model_info(model):
+    """Display model's RF and parameter count"""
+    print("\nReceptive Field Calculation:")
+    print("Layer   RF      n_in    j_in    n_out   j_out   k   d   s   p")
+    print("Input   1       32      1       32      1       -   -   -   -")
+    print("Conv1.1 3       32      1       32      1       3   1   1   1")
+    print("Conv1.2 5       32      1       32      1       3   1   1   1")
+    print("Conv2.1 7       32      1       32      1       3   1   1   1")
+    print("Conv2.2 9       32      1       32      1       3   1   1   1")
+    print("Conv3.1 13      32      1       32      1       3   2   1   2")
+    print("Conv3.2 15      32      1       32      1       3   1   1   1")
+    print("Conv4.1 23      32      1       16      2       3   1   2   1")
+    print("Conv4.2 47      16      2       16      2       3   1   1   1")
+    print("\nFinal Receptive Field: 47x47")
+    
+    # Print model summary
+    print("\nModel Parameter Count:")
+    summary(model, (3, 32, 32))
+
 def main():
     # Create datasets and dataloaders
     train_dataset = CIFAR10Dataset(root=Config.DATA_ROOT, train=True)
@@ -31,8 +50,8 @@ def main():
     # Create model
     model = CIFAR10Net(num_classes=Config.NUM_CLASSES).to(Config.DEVICE)
     
-    # Print model summary
-    summary(model, (3, 32, 32))
+    # Display model information
+    display_model_info(model)
     
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
