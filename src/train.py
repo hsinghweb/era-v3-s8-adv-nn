@@ -86,6 +86,11 @@ def main():
         if test_acc > best_acc:
             best_acc = test_acc
             torch.save(model.state_dict(), Config.MODEL_SAVE_PATH)
+    
+    print("\nTraining Complete!")
+    print(f"Best Test Accuracy: {best_acc:.2f}%")
+    print("\nModel Summary:")
+    summary(model, (3, 32, 32))
 
 if __name__ == "__main__":
     main() 
