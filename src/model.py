@@ -20,60 +20,84 @@ class CIFAR10Net(nn.Module):
     Receptive Field calculation for current architecture:
     Layer               RF      n_in    j_in    n_out   j_out   k   d   s   p
     Input               1       32      1       32      1       -   -   -   -
+    
     Conv1.1             3       32      1       32      1       3   1   1   1
     Conv1.2             5       32      1       32      1       3   1   1   1
+    Conv1.3(s2)         9       32      1       16      2       3   1   2   1
     
-    DWConv2(depth)      7       32      1       32      1       3   1   1   1
-    DWConv2(point)      7       32      1       32      1       1   1   1   0
+    DWConv2.1           13      16      2       16      2       3   1   1   1
+    DWConv2.2           17      16      2       16      2       3   1   1   1
+    DWConv2.3(s2)       25      16      2       8       4       3   1   2   1
     
-    Conv3.1(dilated)    15      32      1       32      1       3   4   1   4
-    Conv3.2(dilated)    23      32      1       32      1       3   4   1   4
+    Conv3.1(d2)         41      8       4       8       4       3   2   1   2
+    Conv3.2(d2)         57      8       4       8       4       3   2   1   2
+    Conv3.3(s2)         73      8       4       4       8       3   1   2   1
     
-    Conv4(dilated+s)    47      32      1       16      2       5   3   2   6
+    Conv4.1             89      4       8       4       8       3   1   1   1
+    Conv4.2             105     4       8       4       8       3   1   1   1
+    Conv4.3(s2)         137     4       8       2       16      3   1   2   1
     
-    Final RF: 47x47
-    Parameters: 176,000
+    Final RF: 137x137
+    Parameters: 119,610
     """
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block with one conv layer
+        # C1 Block with three conv layers
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 16, 3, padding=1),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(3, 12, 3, padding=1),
+            nn.BatchNorm2d(12),
             nn.ReLU(),
-            nn.Conv2d(16, 24, 3, padding=1),
-            nn.BatchNorm2d(24),
+            nn.Conv2d(12, 12, 3, padding=1),
+            nn.BatchNorm2d(12),
+            nn.ReLU(),
+            nn.Conv2d(12, 16, 3, stride=2, padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
         )
         
         # C2 Block with Depthwise Separable Conv
         self.conv2 = nn.Sequential(
-            DepthwiseSeparableConv(24, 32, 3),
+            DepthwiseSeparableConv(16, 24, 3),
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+            DepthwiseSeparableConv(24, 24, 3),
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+            DepthwiseSeparableConv(24, 32, 3, stride=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
         )
         
-        # C3 Block with two Dilated Convs
+        # C3 Block with Dilated Conv
         self.conv3 = nn.Sequential(
-            nn.Conv2d(32, 48, 3, padding=4, dilation=4),
-            nn.BatchNorm2d(48),
+            nn.Conv2d(32, 40, 3, padding=2, dilation=2),
+            nn.BatchNorm2d(40),
             nn.ReLU(),
-            nn.Conv2d(48, 64, 3, padding=4, dilation=4),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(40, 40, 3, padding=2, dilation=2),
+            nn.BatchNorm2d(40),
+            nn.ReLU(),
+            nn.Conv2d(40, 48, 3, stride=2, padding=1),
+            nn.BatchNorm2d(48),
             nn.ReLU(),
         )
         
-        # C4 Block with stride=2
+        # C4 Block
         self.conv4 = nn.Sequential(
-            nn.Conv2d(64, 80, 5, stride=2, padding=6, dilation=3),
-            nn.BatchNorm2d(80),
+            nn.Conv2d(48, 48, 3, padding=1),
+            nn.BatchNorm2d(48),
+            nn.ReLU(),
+            nn.Conv2d(48, 48, 3, padding=1),
+            nn.BatchNorm2d(48),
+            nn.ReLU(),
+            nn.Conv2d(48, 64, 3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
         )
         
         # Global Average Pooling and Final FC
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(80, num_classes)
+        self.fc = nn.Linear(64, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -81,6 +105,6 @@ class CIFAR10Net(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.gap(x)
-        x = x.view(-1, 80)
+        x = x.view(-1, 64)
         x = self.fc(x)
         return x 
