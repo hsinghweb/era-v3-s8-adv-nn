@@ -30,8 +30,8 @@ def display_model_info(model):
     print("Conv4.1             89      4       8       4       8       3   1   1   1")
     print("Conv4.2             105     4       8       4       8       3   1   1   1")
     print("Conv4.3(s2)         137     4       8       2       16      3   1   2   1")
-    print("\nFinal Receptive Field: 137x137")
-    print(f"Total Parameters: 194,950\n")
+    print("\nFinal Receptive Field: 137x137 (>44 requirement)")
+    print(f"Total Parameters: 194,950 (<200K requirement)\n")
     
     # Print model summary
     print("\nModel Parameter Count:")

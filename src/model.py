@@ -36,9 +36,9 @@ class CIFAR10Net(nn.Module):
     Conv4.1             89      4       8       4       8       3   1   1   1
     Conv4.2             105     4       8       4       8       3   1   1   1
     Conv4.3(s2)         137     4       8       2       16      3   1   2   1
-    
-    Final RF: 137x137
-    Parameters: 194,950
+
+    Final RF: 137x137 (>44 requirement)
+    Parameters: 194,950 (<200K requirement)
     """
     def __init__(self, num_classes=10):
         super().__init__()
