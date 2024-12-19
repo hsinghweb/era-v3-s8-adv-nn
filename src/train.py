@@ -68,15 +68,28 @@ def main():
     # Display model information
     display_model_info(model)
     
-    # Define loss and optimizer
+    # Define loss and optimizer with higher learning rate
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
+    optimizer = optim.Adam(model.parameters(), lr=0.003, weight_decay=1e-4)
     
-    # Training loop
+    # Add learning rate scheduler for faster convergence
+    scheduler = optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=0.003,
+        epochs=Config.EPOCHS,
+        steps_per_epoch=len(train_loader),
+        div_factor=10,
+        pct_start=0.2
+    )
+    
+    # Training loop with scheduler
     best_acc = 0.0
     for epoch in range(Config.EPOCHS):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer)
         test_loss, test_acc = validate(model, test_loader, criterion)
+        
+        # Add scheduler step after training
+        scheduler.step()
         
         print(f"Epoch: {epoch+1}/{Config.EPOCHS}")
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")
