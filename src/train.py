@@ -70,7 +70,20 @@ def main():
     
     # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
+    optimizer = optim.Adam(
+        model.parameters(), 
+        lr=Config.LEARNING_RATE,
+        weight_decay=Config.WEIGHT_DECAY
+    )
+    if Config.ONE_CYCLE_LR:
+        scheduler = optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=Config.MAX_LR,
+            epochs=Config.EPOCHS,
+            steps_per_epoch=len(train_loader),
+            div_factor=Config.DIV_FACTOR,
+            pct_start=Config.PCT_START
+        )
     
     # Training loop
     best_acc = 0.0
