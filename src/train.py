@@ -23,15 +23,15 @@ def display_model_info(model):
     print("DWConv2.2           17      16      2       16      2       3   1   1   1")
     print("DWConv2.3(s2)       25      16      2       8       4       3   1   2   1")
     print("")
-    print("DWConv3.1(d2)       41      8       4       8       4       3   2   1   2")
-    print("DWConv3.2(d2)       57      8       4       8       4       3   2   1   2")
+    print("Conv3.1(d2)         41      8       4       8       4       3   2   1   2")
+    print("Conv3.2(d2)         57      8       4       8       4       3   2   1   2")
     print("Conv3.3(s2)         73      8       4       4       8       3   1   2   1")
     print("")
-    print("DWConv4.1           89      4       8       4       8       3   1   1   1")
-    print("DWConv4.2           105     4       8       4       8       3   1   1   1")
+    print("Conv4.1             89      4       8       4       8       3   1   1   1")
+    print("Conv4.2             105     4       8       4       8       3   1   1   1")
     print("Conv4.3(s2)         137     4       8       2       16      3   1   2   1")
     print("\nFinal Receptive Field: 137x137 (>44 requirement)")
-    print(f"Total Parameters: 146,784 (<200K requirement)\n")
+    print(f"Total Parameters: 194,950 (<200K requirement)\n")
     
     # Print model summary
     print("\nModel Parameter Count:")
@@ -68,28 +68,15 @@ def main():
     # Display model information
     display_model_info(model)
     
-    # Define loss and optimizer with modified learning rate
+    # Define loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
+    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
     
-    # Modify scheduler parameters
-    scheduler = optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=0.001,
-        epochs=Config.EPOCHS,
-        steps_per_epoch=len(train_loader),
-        div_factor=10,
-        pct_start=0.3
-    )
-    
-    # Training loop with scheduler
+    # Training loop
     best_acc = 0.0
     for epoch in range(Config.EPOCHS):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer)
         test_loss, test_acc = validate(model, test_loader, criterion)
-        
-        # Add scheduler step after training
-        scheduler.step()
         
         print(f"Epoch: {epoch+1}/{Config.EPOCHS}")
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")

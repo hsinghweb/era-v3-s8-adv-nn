@@ -7,7 +7,7 @@ class Config:
     
     # Training
     BATCH_SIZE = 128
-    EPOCHS = 50
+    EPOCHS = 100
     LEARNING_RATE = 0.001
     
     # Device
