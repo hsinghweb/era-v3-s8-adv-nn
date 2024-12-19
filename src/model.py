@@ -43,73 +43,73 @@ class CIFAR10Net(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block: Added 1x1 convs for feature refinement
+        # C1 Block: Bottleneck pattern with 1x1
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1),          # Increased initial channels
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 16, 1),                    # 1x1 for channel reduction
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.Conv2d(16, 32, 1),                    # 1x1 for feature refinement
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, 3, stride=2, padding=2, dilation=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-        )
-        
-        # C2 Block: Enhanced feature processing
-        self.conv2 = nn.Sequential(
-            DepthwiseSeparableConv(32, 48, 3, padding=2),
-            nn.BatchNorm2d(48),
-            nn.ReLU(),
-            nn.Conv2d(48, 24, 1),                    # 1x1 reduction
+            nn.Conv2d(3, 24, 1),                     # 32->24
             nn.BatchNorm2d(24),
             nn.ReLU(),
-            nn.Conv2d(24, 32, 1),                    # 1x1 expansion
+            nn.Conv2d(24, 16, 1),                    # Keep 16
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 24, 3, stride=2, padding=1),  # 32->24
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+            nn.Conv2d(24, 24, 1),                    # Keep 24
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+        )
+        
+        # C2 Block: Efficient feature processing
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(24, 40, 1),                    # 48->40
+            nn.BatchNorm2d(40),
+            nn.ReLU(),
+            DepthwiseSeparableConv(40, 32, 3),       # Keep 32
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            DepthwiseSeparableConv(32, 48, 3, stride=2),
+            nn.Conv2d(32, 40, 1),                    # 48->40
+            nn.BatchNorm2d(40),
+            nn.ReLU(),
+            DepthwiseSeparableConv(40, 48, 3, stride=2),  # Keep 48
             nn.BatchNorm2d(48),
             nn.ReLU(),
         )
         
-        # C3 Block: Multi-scale feature extraction
+        # C3 Block: Dilated with bottleneck
         self.conv3 = nn.Sequential(
-            nn.Conv2d(48, 64, 3, padding=2, dilation=2),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(48, 56, 1),                    # 64->56
+            nn.BatchNorm2d(56),
             nn.ReLU(),
-            nn.Conv2d(64, 32, 1),                    # 1x1 reduction
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 48, 1),                    # 1x1 expansion
+            nn.Conv2d(56, 48, 3, padding=2, dilation=2),  # Keep 48
             nn.BatchNorm2d(48),
             nn.ReLU(),
-            nn.Conv2d(48, 64, 3, stride=2, padding=2, dilation=2),
+            nn.Conv2d(48, 56, 1),                    # 64->56
+            nn.BatchNorm2d(56),
+            nn.ReLU(),
+            nn.Conv2d(56, 64, 3, stride=2, padding=1),  # Keep 64
             nn.BatchNorm2d(64),
             nn.ReLU(),
         )
         
         # C4 Block: Final feature refinement
         self.conv4 = nn.Sequential(
-            nn.Conv2d(64, 80, 3, padding=2, dilation=2),
+            nn.Conv2d(64, 80, 1),                    # 96->80
             nn.BatchNorm2d(80),
             nn.ReLU(),
-            nn.Conv2d(80, 48, 1),                    # 1x1 reduction
-            nn.BatchNorm2d(48),
-            nn.ReLU(),
-            nn.Conv2d(48, 64, 1),                    # 1x1 expansion
+            nn.Conv2d(80, 64, 3, padding=2, dilation=2),  # Keep 64
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 80, 3, stride=2, padding=2, dilation=2),
+            nn.Conv2d(64, 80, 1),                    # 96->80
+            nn.BatchNorm2d(80),
+            nn.ReLU(),
+            nn.Conv2d(80, 80, 3, stride=2, padding=1),  # Keep 80
             nn.BatchNorm2d(80),
             nn.ReLU(),
         )
         
-        # Output layers with stronger regularization
+        # Output with stronger regularization
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.dropout = nn.Dropout(0.2)               # Increased dropout
+        self.dropout = nn.Dropout(0.25)
         self.fc = nn.Linear(80, num_classes)
 
     def forward(self, x):
