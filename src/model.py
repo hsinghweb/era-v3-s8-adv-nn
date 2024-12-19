@@ -17,17 +17,26 @@ class DepthwiseSeparableConv(nn.Module):
 
 class CIFAR10Net(nn.Module):
     """
-    Receptive Field calculation:
-    Layer   RF      n_in    j_in    n_out   j_out   k   d   s   p
-    Input   1       32      1       32      1       -   -   -   -
-    Conv1.1 3       32      1       32      1       3   1   1   1
-    Conv1.2 5       32      1       32      1       3   1   1   1
-    Conv2.1 7       32      1       32      1       3   1   1   1
-    Conv2.2 9       32      1       32      1       3   1   1   1
-    Conv3.1 13      32      1       32      1       3   2   1   2
-    Conv3.2 15      32      1       32      1       3   1   1   1
-    Conv4.1 23      32      1       16      2       3   1   2   1
-    Conv4.2 47      16      2       16      2       3   1   1   1
+    Receptive Field calculation for current architecture:
+    Layer               RF      n_in    j_in    n_out   j_out   k   d   s   p
+    Input               1       32      1       32      1       -   -   -   -
+    Conv1.1             3       32      1       32      1       3   1   1   1
+    DWConv1.2(depth)    5       32      1       32      1       3   1   1   1
+    DWConv1.2(point)    5       32      1       32      1       1   1   1   0
+    
+    DWConv2.1(depth)    7       32      1       32      1       3   1   1   1
+    DWConv2.1(point)    7       32      1       32      1       1   1   1   0
+    DWConv2.2(depth)    9       32      1       32      1       3   1   1   1
+    DWConv2.2(point)    9       32      1       32      1       1   1   1   0
+    
+    Conv3.1(dilated)    13      32      1       32      1       3   2   1   2
+    DWConv3.2(depth)    15      32      1       32      1       3   1   1   1
+    DWConv3.2(point)    15      32      1       32      1       1   1   1   0
+    
+    DWConv4.1(depth)    23      32      1       16      2       3   1   2   1
+    DWConv4.1(point)    23      16      2       16      2       1   1   1   0
+    DWConv4.2(depth)    47      16      2       16      2       3   1   1   1
+    DWConv4.2(point)    47      16      2       16      2       1   1   1   0
     
     Final RF: 47x47
     """
