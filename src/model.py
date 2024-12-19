@@ -21,71 +21,62 @@ class CIFAR10Net(nn.Module):
     Layer               RF      n_in    j_in    n_out   j_out   k   d   s   p
     Input               1       32      1       32      1       -   -   -   -
     Conv1.1             3       32      1       32      1       3   1   1   1
-    DWConv1.2(depth)    5       32      1       32      1       3   1   1   1
-    DWConv1.2(point)    5       32      1       32      1       1   1   1   0
+    Conv1.2             5       32      1       32      1       3   1   1   1
     
-    DWConv2.1(depth)    7       32      1       32      1       3   1   1   1
-    DWConv2.1(point)    7       32      1       32      1       1   1   1   0
-    DWConv2.2(depth)    9       32      1       32      1       3   1   1   1
-    DWConv2.2(point)    9       32      1       32      1       1   1   1   0
+    DWConv2(depth)      7       32      1       32      1       3   1   1   1
+    DWConv2(point)      7       32      1       32      1       1   1   1   0
     
-    Conv3.1(dilated)    13      32      1       32      1       3   2   1   2
-    DWConv3.2(depth)    15      32      1       32      1       3   1   1   1
-    DWConv3.2(point)    15      32      1       32      1       1   1   1   0
+    Conv3.1(dilated)    15      32      1       32      1       3   4   1   4
+    Conv3.2(dilated)    23      32      1       32      1       3   4   1   4
     
-    DWConv4.1(depth)    23      32      1       16      2       3   1   2   1
-    DWConv4.1(point)    23      16      2       16      2       1   1   1   0
-    DWConv4.2(depth)    47      16      2       16      2       3   1   1   1
-    DWConv4.2(point)    47      16      2       16      2       1   1   1   0
+    Conv4.1(stride=2)   31      32      1       16      2       3   1   2   1
+    Conv4.2(stride=2)   47      16      2       8       4       3   1   2   1
     
     Final RF: 47x47
     """
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block - Increased channels
+        # C1 Block - Reduced channels
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1),
+            nn.Conv2d(3, 16, 3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            DepthwiseSeparableConv(32, 64, 3),
+        )
+        
+        # C2 Block with Depthwise Separable Conv only
+        self.conv2 = nn.Sequential(
+            DepthwiseSeparableConv(32, 48, 3),
+            nn.BatchNorm2d(48),
+            nn.ReLU(),
+        )
+        
+        # C3 Block with two Dilated Conv (dilation=4)
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(48, 64, 3, padding=4, dilation=4),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-        )
-        
-        # C2 Block with Depthwise Separable Conv
-        self.conv2 = nn.Sequential(
-            DepthwiseSeparableConv(64, 96, 3),
+            nn.Conv2d(64, 96, 3, padding=4, dilation=4),
             nn.BatchNorm2d(96),
             nn.ReLU(),
-            DepthwiseSeparableConv(96, 128, 3),
+        )
+        
+        # C4 Block with two stride=2 convs
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(96, 128, 3, stride=2, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
-        )
-        
-        # C3 Block with Dilated Conv
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(128, 160, 3, padding=2, dilation=2),
-            nn.BatchNorm2d(160),
-            nn.ReLU(),
-            DepthwiseSeparableConv(160, 192, 3),
-            nn.BatchNorm2d(192),
-            nn.ReLU(),
-        )
-        
-        # C4 Block with stride=2
-        self.conv4 = nn.Sequential(
-            DepthwiseSeparableConv(192, 224, 3, stride=2),
-            nn.BatchNorm2d(224),
-            nn.ReLU(),
-            DepthwiseSeparableConv(224, 256, 3),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(128, 128, 3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
         )
         
         # Global Average Pooling and Final FC
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(256, num_classes)
+        self.fc = nn.Linear(128, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -93,6 +84,6 @@ class CIFAR10Net(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.gap(x)
-        x = x.view(-1, 256)
+        x = x.view(-1, 128)
         x = self.fc(x)
         return x 
