@@ -38,7 +38,7 @@ class CIFAR10Net(nn.Module):
     Conv4.3(s2)         137     4       8       2       16      3   1   2   1
     
     Final RF: 137x137
-    Parameters: 171,870
+    Parameters: 194,950
     """
     def __init__(self, num_classes=10):
         super().__init__()
@@ -82,7 +82,7 @@ class CIFAR10Net(nn.Module):
             nn.ReLU(),
         )
         
-        # C4 Block
+        # C4 Block - Reduced channels
         self.conv4 = nn.Sequential(
             nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
@@ -90,14 +90,14 @@ class CIFAR10Net(nn.Module):
             nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 96, 3, stride=2, padding=1),
-            nn.BatchNorm2d(96),
+            nn.Conv2d(64, 72, 3, stride=2, padding=1),
+            nn.BatchNorm2d(72),
             nn.ReLU(),
         )
         
         # Global Average Pooling and Final FC
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(96, num_classes)
+        self.fc = nn.Linear(72, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -105,6 +105,6 @@ class CIFAR10Net(nn.Module):
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.gap(x)
-        x = x.view(-1, 96)
+        x = x.view(-1, 72)
         x = self.fc(x)
         return x 
