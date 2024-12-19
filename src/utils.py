@@ -5,6 +5,8 @@ from config import Config
 def train_epoch(model, dataloader, criterion, optimizer):
     model.train()
     running_loss = 0.0
+    correct = 0
+    total = 0
     
     for images, labels in tqdm(dataloader):
         images, labels = images.to(Config.DEVICE), labels.to(Config.DEVICE)
@@ -17,8 +19,14 @@ def train_epoch(model, dataloader, criterion, optimizer):
         optimizer.step()
         
         running_loss += loss.item()
+        
+        # Calculate accuracy
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
     
-    return running_loss / len(dataloader)
+    accuracy = 100. * correct / total
+    return running_loss / len(dataloader), accuracy
 
 def validate(model, dataloader, criterion):
     model.eval()

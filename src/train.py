@@ -69,12 +69,13 @@ def main():
     # Training loop
     best_acc = 0.0
     for epoch in range(Config.EPOCHS):
-        train_loss = train_epoch(model, train_loader, criterion, optimizer)
+        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer)
         test_loss, test_acc = validate(model, test_loader, criterion)
         
         print(f"Epoch: {epoch+1}/{Config.EPOCHS}")
-        print(f"Train Loss: {train_loss:.4f}")
+        print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")
         print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
+        print("-" * 50)
         
         if test_acc > best_acc:
             best_acc = test_acc

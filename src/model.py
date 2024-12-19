@@ -37,36 +37,36 @@ class CIFAR10Net(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block - Reduced initial channels
+        # C1 Block with one conv layer
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 16, 3, padding=1),      # 24->16
+            nn.Conv2d(3, 16, 3, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(16, 24, 3, padding=1),     # 32->24
+            nn.Conv2d(16, 24, 3, padding=1),
             nn.BatchNorm2d(24),
             nn.ReLU(),
         )
         
         # C2 Block with Depthwise Separable Conv
         self.conv2 = nn.Sequential(
-            DepthwiseSeparableConv(24, 32, 3),   # 48->32
+            DepthwiseSeparableConv(24, 32, 3),
             nn.BatchNorm2d(32),
             nn.ReLU(),
         )
         
-        # C3 Block with two Dilated Convs - Reduced channels
+        # C3 Block with two Dilated Convs
         self.conv3 = nn.Sequential(
-            nn.Conv2d(32, 48, 3, padding=4, dilation=4),  # 56->48
+            nn.Conv2d(32, 48, 3, padding=4, dilation=4),
             nn.BatchNorm2d(48),
             nn.ReLU(),
-            nn.Conv2d(48, 64, 3, padding=4, dilation=4),  # Kept at 64
+            nn.Conv2d(48, 64, 3, padding=4, dilation=4),
             nn.BatchNorm2d(64),
             nn.ReLU(),
         )
         
-        # C4 Block with increased dilation=3
+        # C4 Block with stride=2
         self.conv4 = nn.Sequential(
-            nn.Conv2d(64, 80, 5, stride=2, padding=6, dilation=3),  # 92->80
+            nn.Conv2d(64, 80, 5, stride=2, padding=6, dilation=3),
             nn.BatchNorm2d(80),
             nn.ReLU(),
         )
