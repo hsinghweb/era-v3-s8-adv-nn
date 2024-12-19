@@ -43,74 +43,49 @@ class CIFAR10Net(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block: More 1x1 for early feature refinement
+        # C1 Block: Initial feature extraction
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, 1),                     # 1x1 initial expansion
+            nn.Conv2d(3, 32, 3, padding=1),          # Basic 3x3 conv
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(32, 16, 1),                    # 1x1 reduction
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.Conv2d(16, 32, 1),                    # 1x1 expansion
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 24, 3, stride=2, padding=1),  # 3x3 spatial
-            nn.BatchNorm2d(24),
+            nn.Conv2d(32, 64, 3, stride=2, padding=1),  # Strided conv for reduction
+            nn.BatchNorm2d(64),
             nn.ReLU(),
         )
         
-        # C2 Block: Efficient feature processing with 1x1
+        # C2 Block: Depthwise Separable Convolution
         self.conv2 = nn.Sequential(
-            nn.Conv2d(24, 48, 1),                    # 1x1 expansion
-            nn.BatchNorm2d(48),
+            DepthwiseSeparableConv(64, 128, 3),      # DW spatial
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            DepthwiseSeparableConv(48, 32, 3),       # DW spatial
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 48, 1),                    # 1x1 expansion
-            nn.BatchNorm2d(48),
-            nn.ReLU(),
-            DepthwiseSeparableConv(48, 48, 3, stride=2),  # DW with stride
-            nn.BatchNorm2d(48),
+            nn.Conv2d(128, 128, 3, stride=2, padding=1),  # Strided conv
+            nn.BatchNorm2d(128),
             nn.ReLU(),
         )
         
-        # C3 Block: Dilated with 1x1 bottleneck
+        # C3 Block: Dilated convolution
         self.conv3 = nn.Sequential(
-            nn.Conv2d(48, 64, 1),                    # 1x1 expansion
-            nn.BatchNorm2d(64),
+            nn.Conv2d(128, 256, 3, padding=2, dilation=2),  # Dilated conv
+            nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Conv2d(64, 48, 3, padding=2, dilation=2),  # Dilated spatial
-            nn.BatchNorm2d(48),
-            nn.ReLU(),
-            nn.Conv2d(48, 64, 1),                    # 1x1 expansion
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=2, padding=1),  # Spatial reduction
-            nn.BatchNorm2d(64),
+            nn.Conv2d(256, 256, 3, stride=2, padding=1),  # Strided conv
+            nn.BatchNorm2d(256),
             nn.ReLU(),
         )
         
-        # C4 Block: Final feature refinement with 1x1
+        # C4 Block: Final feature refinement
         self.conv4 = nn.Sequential(
-            nn.Conv2d(64, 72, 1),                    # 80->72 reduced expansion
-            nn.BatchNorm2d(72),
+            nn.Conv2d(256, 512, 3, padding=1),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
-            nn.Conv2d(72, 64, 3, padding=2, dilation=2),  # Keep same
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 72, 1),                    # 80->72 reduced expansion
-            nn.BatchNorm2d(72),
-            nn.ReLU(),
-            nn.Conv2d(72, 72, 3, stride=2, padding=1),  # 80->72 reduced final
-            nn.BatchNorm2d(72),
+            nn.Conv2d(512, 512, 1),                  # 1x1 conv for channel reduction
+            nn.BatchNorm2d(512),
             nn.ReLU(),
         )
         
-        # Output with stronger regularization
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.dropout = nn.Dropout(0.2)
-        self.fc = nn.Linear(72, num_classes)
+        self.dropout = nn.Dropout(0.1)               # Reduced dropout
+        self.fc = nn.Linear(512, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -119,6 +94,6 @@ class CIFAR10Net(nn.Module):
         x = self.conv4(x)
         x = self.gap(x)
         x = self.dropout(x)
-        x = x.view(-1, 72)
+        x = x.view(-1, 512)
         x = self.fc(x)
         return x
