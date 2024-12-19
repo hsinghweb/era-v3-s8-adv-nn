@@ -23,9 +23,9 @@ def display_model_info(model):
     print("Conv3.1(dilated)    15      32      1       32      1       3   4   1   4")
     print("Conv3.2(dilated)    23      32      1       32      1       3   4   1   4")
     print("")
-    print("Conv4.1(stride=2)   31      32      1       16      2       3   1   2   1")
-    print("Conv4.2(stride=2)   47      16      2       8       4       3   1   2   1")
-    print("\nFinal RF: 47x47")
+    print("Conv4(dilated+s)    47      32      1       16      2       5   3   2   6")
+    print("\nFinal Receptive Field: 47x47")
+    print(f"Total Parameters: ~176,000\n")
     
     # Print model summary
     print("\nModel Parameter Count:")
