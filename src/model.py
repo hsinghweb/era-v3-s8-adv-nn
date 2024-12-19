@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 
 class DepthwiseSeparableConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=1):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=1, dilation=1):
         super().__init__()
         self.depthwise = nn.Conv2d(
             in_channels, in_channels, kernel_size, 
-            stride=stride, padding=padding, groups=in_channels
+            stride=stride, padding=padding, groups=in_channels, dilation=dilation
         )
         self.pointwise = nn.Conv2d(in_channels, out_channels, 1)
 
@@ -43,63 +43,74 @@ class CIFAR10Net(nn.Module):
     def __init__(self, num_classes=10):
         super().__init__()
         
-        # C1 Block with three conv layers
+        # C1 Block: Added 1x1 convs for feature refinement
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 24, 3, padding=1),          
-            nn.BatchNorm2d(24),
-            nn.ReLU(),
-            nn.Conv2d(24, 24, 1),                    # Added 1x1 for feature refinement
-            nn.BatchNorm2d(24),
-            nn.ReLU(),
-            nn.Conv2d(24, 32, 3, padding=2, dilation=2),  # Using dilation instead of stride
+            nn.Conv2d(3, 32, 3, padding=1),          # Increased initial channels
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2)  # Spatial reduction after feature extraction
+            nn.Conv2d(32, 16, 1),                    # 1x1 for channel reduction
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, 1),                    # 1x1 for feature refinement
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, 3, stride=2, padding=2, dilation=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
         )
         
-        # C2 Block with Depthwise Separable Conv
+        # C2 Block: Enhanced feature processing
         self.conv2 = nn.Sequential(
-            DepthwiseSeparableConv(32, 48, 3),
+            DepthwiseSeparableConv(32, 48, 3, padding=2),
             nn.BatchNorm2d(48),
             nn.ReLU(),
-            nn.Conv2d(48, 32, 1),                    # 1x1 for channel reduction
+            nn.Conv2d(48, 24, 1),                    # 1x1 reduction
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+            nn.Conv2d(24, 32, 1),                    # 1x1 expansion
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            DepthwiseSeparableConv(32, 48, 3, stride=2),  # Keep stride here
+            DepthwiseSeparableConv(32, 48, 3, stride=2),
             nn.BatchNorm2d(48),
             nn.ReLU(),
         )
         
-        # C3 Block with Dilated Conv
+        # C3 Block: Multi-scale feature extraction
         self.conv3 = nn.Sequential(
             nn.Conv2d(48, 64, 3, padding=2, dilation=2),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 48, 1),                    # 1x1 for channel reduction
+            nn.Conv2d(64, 32, 1),                    # 1x1 reduction
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 48, 1),                    # 1x1 expansion
             nn.BatchNorm2d(48),
             nn.ReLU(),
-            nn.Conv2d(48, 64, 3, stride=2, padding=1),  # Keep stride here
+            nn.Conv2d(48, 64, 3, stride=2, padding=2, dilation=2),
             nn.BatchNorm2d(64),
             nn.ReLU(),
         )
         
-        # C4 Block
+        # C4 Block: Final feature refinement
         self.conv4 = nn.Sequential(
             nn.Conv2d(64, 80, 3, padding=2, dilation=2),
             nn.BatchNorm2d(80),
             nn.ReLU(),
-            nn.Conv2d(80, 64, 1),                    # 1x1 for channel reduction
+            nn.Conv2d(80, 48, 1),                    # 1x1 reduction
+            nn.BatchNorm2d(48),
+            nn.ReLU(),
+            nn.Conv2d(48, 64, 1),                    # 1x1 expansion
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, 96, 3, stride=2, padding=1),  # Keep stride here
-            nn.BatchNorm2d(96),
+            nn.Conv2d(64, 80, 3, stride=2, padding=2, dilation=2),
+            nn.BatchNorm2d(80),
             nn.ReLU(),
         )
         
-        # Global Average Pooling and Final FC
+        # Output layers with stronger regularization
         self.gap = nn.AdaptiveAvgPool2d(1)
-        self.dropout = nn.Dropout(0.1)  # Added dropout for regularization
-        self.fc = nn.Linear(96, num_classes)
+        self.dropout = nn.Dropout(0.2)               # Increased dropout
+        self.fc = nn.Linear(80, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -108,6 +119,6 @@ class CIFAR10Net(nn.Module):
         x = self.conv4(x)
         x = self.gap(x)
         x = self.dropout(x)
-        x = x.view(-1, 96)
+        x = x.view(-1, 80)
         x = self.fc(x)
         return x
