@@ -29,6 +29,12 @@ def display_model_info(model):
     summary(model, (3, 32, 32))
 
 def main():
+    # Display CUDA information
+    print(f"\nCUDA Available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA Device: {torch.cuda.get_device_name(0)}")
+    print(f"Using Device: {Config.DEVICE}\n")
+
     # Create datasets and dataloaders
     train_dataset = CIFAR10Dataset(root=Config.DATA_ROOT, train=True)
     test_dataset = CIFAR10Dataset(root=Config.DATA_ROOT, train=False)
